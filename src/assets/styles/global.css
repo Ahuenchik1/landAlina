@@ -1,0 +1,39 @@
+/* Reset and base styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 62.5%; /* 10px */
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+}
+
+body {
+  font-family: 'Arial', sans-serif;
+  font-size: 1.6rem; /* 16px */
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Responsive font sizes */
+@media (max-width: 1920px) {
+  html {
+    font-size: 52.5%;
+  }
+}
+
+@media (max-width: 1440px) {
+  html {
+    font-size: 42.5%;
+  }
+}
+
+@media (max-width: 768px) {
+  html {
+    font-size: 32.5%;
+  }
+} 
