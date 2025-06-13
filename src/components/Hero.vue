@@ -79,20 +79,33 @@ const handleScroll = () => {
   const hero = document.querySelector('.hero')
   if (!hero) return
 
-  const scrollPosition = window.scrollY
-  
-  // Сбрасываем трансформацию при скролле вверх
-  if (scrollPosition <= 0) {
-    hero.style.transform = 'none'
-    hero.style.opacity = '1'
+  // Проверяем, не в фокусе ли какой-либо элемент формы
+  const activeElement = document.activeElement
+  if (activeElement && (
+    activeElement.tagName === 'INPUT' ||
+    activeElement.tagName === 'TEXTAREA' ||
+    activeElement.tagName === 'SELECT'
+  )) {
     return
   }
 
-  const scale = Math.max(0.8, 1 - scrollPosition / 1000)
-  const translateY = scrollPosition * 0.5
+  const rect = hero.getBoundingClientRect()
+  const windowHeight = window.innerHeight
+
+  const fadeStart = windowHeight * 0.5
+  const fadeEnd = -windowHeight * 0.2
+
+  let progress = 0
+  if (rect.bottom < fadeStart) {
+    progress = Math.min(1, (fadeStart - rect.bottom) / (fadeStart - fadeEnd))
+  }
+
+  const scale = 1 - (progress * 0.6)
+  const translateY = progress * 50
+  const opacity = 1 - progress
 
   hero.style.transform = `scale(${scale}) translateY(${translateY}px)`
-  hero.style.opacity = Math.max(0, 1 - scrollPosition / 800)
+  hero.style.opacity = opacity
 }
 
 onMounted(() => {
@@ -102,6 +115,19 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll)
 })
+
+const scrollToSection = (sectionId) => {
+  const section = document.getElementById(sectionId)
+  if (section) {
+    const headerHeight = document.querySelector('.header').offsetHeight
+    const sectionPosition = section.getBoundingClientRect().top + window.pageYOffset - headerHeight
+
+    window.scrollTo({
+      top: sectionPosition,
+      behavior: 'smooth'
+    })
+  }
+}
 </script>
 
 <style scoped>

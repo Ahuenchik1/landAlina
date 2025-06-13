@@ -1,8 +1,7 @@
 <template>
-  <footer class="footer" ref="footerSection">
+  <footer class="footer">
     <div class="container footer__container">
       <div class="footer__content">
-        <!-- Левая колонка с логотипом и описанием -->
         <div class="footer__left">
           <div class="footer__logo">
             <img src="../assets/logo.png" alt="LandAlina Logo">
@@ -11,8 +10,6 @@
             Профессиональные услуги по созданию лендингов для бизнеса
           </p>
         </div>
-
-        <!-- Центральная колонка с навигацией -->
         <div class="footer__nav">
           <h3 class="footer__nav-title">Навигация</h3>
           <ul class="footer__nav-list">
@@ -34,7 +31,11 @@
 
       <div class="footer__bottom">
         <div class="footer__copyright">
-          © 2023 AlinaLanding. Все права защищены
+          © 2023 Land-Alina. Все права защищены
+        </div>
+        <div class="footer__links">
+          <router-link to="/privacy-policy" class="footer__link">Политика конфиденциальности</router-link>
+          <router-link to="/terms-of-use" class="footer__link">Условия использования</router-link>
         </div>
         <div class="footer__social">
           <a 
@@ -68,21 +69,18 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 
 const footerSection = ref(null)
 
-// Функция для плавной прокрутки к секции
 const scrollToSection = (sectionId) => {
   if (sectionId === 'main') {
-    // Сначала сбрасываем все трансформации hero секции
     const hero = document.querySelector('.hero')
     if (hero) {
       hero.style.transform = 'none'
       hero.style.opacity = '1'
     }
     
-    // Затем скроллим к верху
     window.scrollTo({
       top: 0,
       behavior: 'smooth'
@@ -92,7 +90,7 @@ const scrollToSection = (sectionId) => {
 
   const section = document.getElementById(sectionId)
   if (section) {
-    const headerOffset = 100 // Отступ от верха страницы
+    const headerOffset = 100
     const elementPosition = section.getBoundingClientRect().top
     const offsetPosition = elementPosition + window.pageYOffset - headerOffset
 
@@ -102,23 +100,6 @@ const scrollToSection = (sectionId) => {
     })
   }
 }
-
-// Анимация появления
-onMounted(() => {
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        entry.target.classList.add('animate')
-      }
-    })
-  }, {
-    threshold: 0.2
-  })
-
-  if (footerSection.value) {
-    observer.observe(footerSection.value)
-  }
-})
 </script>
 
 <style scoped>
@@ -126,11 +107,6 @@ onMounted(() => {
   background-color: var(--secondary-color);
   color: var(--background-color);
   padding: 8rem 0 3rem;
-  transform-origin: bottom center;
-  will-change: transform, opacity;
-  transition: transform 0.6s ease-out, opacity 0.6s ease-out;
-  opacity: 0;
-  transform: translateY(50px);
 }
 
 .footer__container {
@@ -228,8 +204,25 @@ onMounted(() => {
 }
 
 .footer__copyright {
-  font-size: 2.4rem;
-  opacity: 0.6;
+  font-size: 3rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.footer__links {
+  display: flex;
+  gap: 4rem;
+  margin: 3rem 0;
+}
+
+.footer__link {
+  font-size: 3rem;
+  color: rgba(255, 255, 255, 0.7);
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.footer__link:hover {
+  color: var(--accent-color);
 }
 
 .footer__social {
@@ -256,12 +249,6 @@ onMounted(() => {
 .footer__social-link img {
   width: 3.5rem;
   height: 3.5rem;
-}
-
-/* Анимация появления */
-.footer.animate {
-  opacity: 1;
-  transform: translateY(0);
 }
 
 @media (max-width: 768px) {
@@ -296,7 +283,7 @@ onMounted(() => {
 
   .footer__bottom {
     flex-direction: column;
-    gap: 2rem;
+    gap: 1rem;
     text-align: center;
   }
 
@@ -328,6 +315,11 @@ onMounted(() => {
     flex-wrap: wrap;
     justify-content: center;
     gap: 2rem;
+  }
+
+  .footer__links {
+    flex-direction: column;
+    gap: 1rem;
   }
 }
 </style> 

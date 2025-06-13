@@ -36,7 +36,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 const trustSection = ref(null)
 
 onMounted(() => {
-  // Observer для анимации появления
+
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
@@ -52,24 +52,20 @@ onMounted(() => {
     observer.observe(trustSection.value)
   }
 
-  // Обработчик скролла для анимации исчезновения
+
   const handleScroll = () => {
     if (!trustSection.value) return
 
     const rect = trustSection.value.getBoundingClientRect()
     const windowHeight = window.innerHeight
-
-    // Начало анимации исчезновения (когда нижняя граница секции достигает середины экрана)
-    const fadeStart = windowHeight * 0.7 // Начинаем когда нижняя граница на половине экрана
-    const fadeEnd = -windowHeight * 0.5 // Заканчиваем когда нижняя граница немного выше экрана
-
-    // Вычисляем прогресс анимации на основе нижней границы
+    const fadeStart = windowHeight * 0.7 
+    const fadeEnd = -windowHeight * 0.5 
     let progress = 0
     if (rect.bottom < fadeStart) {
       progress = Math.min(1, (fadeStart - rect.bottom) / (fadeStart - fadeEnd))
     }
 
-    // Применяем трансформации
+  
     const scale = 1 - (progress * 0.6) // Уменьшаем до 80%
     const translateY = progress * 50 // Сдвигаем вверх на 100px
     const opacity = 1 - progress
@@ -127,7 +123,7 @@ const scrollToSection = (sectionId) => {
   padding: 2rem 0;
 }
 
-/* Начальное состояние элементов */
+
 .trust__title,
 .trust__image-wrapper.mobile-only,
 .trust__text,
@@ -138,7 +134,7 @@ const scrollToSection = (sectionId) => {
   transition: opacity 0.6s ease, transform 0.6s ease;
 }
 
-/* Анимация появления при добавлении класса animate */
+
 
 .trust.animate{
   margin: 2 rem 0;

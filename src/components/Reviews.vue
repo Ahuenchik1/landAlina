@@ -35,7 +35,7 @@ let scrollInterval = null
 const currentIndex = ref(0)
 const isMobile = ref(window.innerWidth <= 768)
 
-// Данные отзывов
+
 const reviews = [
   {
     company: 'ФитЛайн Студио',
@@ -67,7 +67,7 @@ const reviews = [
   }
 ]
 
-// Вычисляемое свойство для отображения карточек
+
 const displayedReviews = computed(() => {
   const cards = []
   // Добавляем текущие карточки
@@ -79,7 +79,7 @@ const displayedReviews = computed(() => {
 })
 
 onMounted(() => {
-  // Observer для анимации появления
+
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
@@ -95,24 +95,24 @@ onMounted(() => {
     observer.observe(reviewsSection.value)
   }
 
-  // Обработчик скролла для анимации исчезновения
+
   const handleScroll = () => {
     if (!reviewsSection.value) return
 
     const rect = reviewsSection.value.getBoundingClientRect()
     const windowHeight = window.innerHeight
 
-    // Начало анимации исчезновения (когда нижняя граница секции достигает середины экрана)
+
     const fadeStart = windowHeight * 0.5
     const fadeEnd = -windowHeight * 0.2
 
-    // Вычисляем прогресс анимации на основе нижней границы
+ 
     let progress = 0
     if (rect.bottom < fadeStart) {
       progress = Math.min(1, (fadeStart - rect.bottom) / (fadeStart - fadeEnd))
     }
 
-    // Применяем трансформации
+
     const scale = 1 - (progress * 0.6)
     const translateY = progress * 50
     const opacity = 1 - progress
@@ -121,11 +121,10 @@ onMounted(() => {
     reviewsSection.value.style.opacity = opacity
   }
 
-  // Обновляем функцию автоматической прокрутки
+
   const startAutoScroll = () => {
     if (!cardsContainer.value) return
 
-    // Проверяем ширину экрана
     if (window.innerWidth <= 768) return
 
     let currentPosition = 0
@@ -134,7 +133,6 @@ onMounted(() => {
     scrollInterval = setInterval(() => {
       currentPosition += cardWidth
       
-      // Если достигли конца второй копии карточек, плавно возвращаемся к началу первой
       if (currentPosition >= (cardWidth * reviews.length * 2)) {
         currentPosition = 0
       }
@@ -143,7 +141,7 @@ onMounted(() => {
     }, 3500)
   }
 
-  // Обработчик изменения размера окна
+
   const handleResize = () => {
     isMobile.value = window.innerWidth <= 768
     if (scrollInterval) {
@@ -236,7 +234,7 @@ onMounted(() => {
   line-height: 1.4;
 }
 
-/* Анимация появления при добавлении класса animate */
+
 .reviews.animate .reviews__title {
   opacity: 1;
   transform: translateY(0);
@@ -248,7 +246,6 @@ onMounted(() => {
   transform: translateY(0);
 }
 
-/* Обновляем задержки для появления карточек */
 .reviews.animate .reviews__card:nth-child(1) { transition-delay: 0.1s; }
 .reviews.animate .reviews__card:nth-child(2) { transition-delay: 0.2s; }
 .reviews.animate .reviews__card:nth-child(3) { transition-delay: 0.3s; }

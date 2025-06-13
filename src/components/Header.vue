@@ -89,7 +89,6 @@ const closeMenu = () => {
   isMenuOpen.value = false
 }
 
-// Функция для плавной прокрутки к секции
 const scrollToSection = (sectionId) => {
   const section = document.getElementById(sectionId)
   if (section) {
@@ -103,13 +102,11 @@ const scrollToSection = (sectionId) => {
   }
 }
 
-// Функция для закрытия меню и прокрутки к секции
 const closeMenuAndScroll = (sectionId) => {
   closeMenu()
   scrollToSection(sectionId)
 }
 
-// Обработчик скролла
 const handleScroll = () => {
   if (!header.value) return
 
@@ -117,14 +114,12 @@ const handleScroll = () => {
   isScrollingDown.value = currentScrollTop > lastScrollTop.value
   lastScrollTop.value = currentScrollTop
 
-  // Если скроллим вниз и не наведена мышь, скрываем навигацию
   if (isScrollingDown.value && !isHovered.value) {
     const nav = header.value.querySelector('.header__nav')
     if (nav) {
       nav.style.opacity = '0'
     }
   } else {
-    // Если скроллим вверх или наведена мышь, показываем навигацию
     const nav = header.value.querySelector('.header__nav')
     if (nav) {
       nav.style.opacity = '1'
@@ -132,7 +127,6 @@ const handleScroll = () => {
   }
 }
 
-// Обработчики наведения мыши
 const handleMouseEnter = () => {
   isHovered.value = true
   if (header.value) {

@@ -70,59 +70,65 @@ const workSteps = [
   }
 ]
 
-const observerCallback = (entries) => {
-  entries.forEach(entry => {
-    if (entry.isIntersecting) {
-      const target = entry.target
-      if (target === leftContent.value) {
-        target.classList.add('animate')
-      } else if (target === advantages.value) {
-        target.classList.add('animate')
-      } else if (target === rightContent.value) {
-        target.classList.add('animate')
-      } else {
-        target.classList.add('animate')
-      }
-    }
-  })
+const handleScroll = () => {
+  if (!aboutMeSection.value) return
+
+  const activeElement = document.activeElement
+  if (activeElement && (
+    activeElement.tagName === 'INPUT' ||
+    activeElement.tagName === 'TEXTAREA' ||
+    activeElement.tagName === 'SELECT'
+  )) {
+    return
+  }
+
+  const rect = aboutMeSection.value.getBoundingClientRect()
+  const windowHeight = window.innerHeight
+
+  const fadeStart = windowHeight * 0.5
+  const fadeEnd = -windowHeight * 0.2
+
+  let progress = 0
+  if (rect.bottom < fadeStart) {
+    progress = Math.min(1, (fadeStart - rect.bottom) / (fadeStart - fadeEnd))
+  }
+
+  const scale = 1 - (progress * 0.6)
+  const translateY = progress * 50
+  const opacity = 1 - progress
+
+  aboutMeSection.value.style.transform = `scale(${scale}) translateY(${translateY}px)`
+  aboutMeSection.value.style.opacity = opacity
 }
 
-const observer = new IntersectionObserver(observerCallback, {
-  threshold: 0.2,
-  rootMargin: '0px'
-})
-
-const handleScroll = () => {
-  const aboutMe = aboutMeSection.value
-  if (!aboutMe) return
-
-  const rect = aboutMe.getBoundingClientRect()
-  const isMobile = window.innerWidth <= 768
-
-  // Разные точки начала анимации для мобильных и десктопа
-  const startOffset = isMobile ? window.innerHeight * 3.1 : window.innerHeight
-  const scrollPosition = window.scrollY - rect.top - startOffset
+const resetAnimation = () => {
+  if (!aboutMeSection.value) return
   
-  // Разные параметры анимации для мобильных и десктопа
-  const scaleRange = isMobile ? 2000 : 2000
-  const translateMultiplier = isMobile ? 0.05 : 0.2
-  
-  // Начинаем анимацию только когда секция в поле зрения и скролл идет вниз
-  if (rect.top <= startOffset && rect.bottom >= 0 && scrollPosition > 0) {
-    const scale = Math.max(0.7, 1 - scrollPosition / scaleRange)
-    const translateY = scrollPosition * translateMultiplier
-    const opacity = Math.max(0, 1 - scrollPosition / (isMobile ? 1500 : 800))
-
-    aboutMe.style.transform = `scale(${scale}) translateY(${translateY}px)`
-    aboutMe.style.opacity = opacity
-  }
+  aboutMeSection.value.style.transform = 'scale(1) translateY(0)'
+  aboutMeSection.value.style.opacity = '1'
 }
 
 onMounted(() => {
-  observer.observe(leftContent.value)
-  observer.observe(advantages.value)
-  observer.observe(rightContent.value)
-  
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('animate')
+        if (entry.target === aboutMeSection.value) {
+          resetAnimation()
+        }
+      }
+    })
+  }, {
+    threshold: 0.2
+  })
+
+  // Наблюдаем за всеми элементами, которые должны анимироваться
+  if (leftContent.value) observer.observe(leftContent.value)
+  if (advantages.value) observer.observe(advantages.value)
+  if (rightContent.value) observer.observe(rightContent.value)
+  if (aboutMeSection.value) observer.observe(aboutMeSection.value)
+
+  // Наблюдаем за шагами работы на мобильных устройствах
   if (window.innerWidth <= 768) {
     workStepRefs.value.forEach(ref => {
       if (ref) observer.observe(ref)
@@ -130,10 +136,26 @@ onMounted(() => {
   }
 
   window.addEventListener('scroll', handleScroll)
+  
+  // Сбрасываем анимацию при загрузке страницы, если секция в поле зрения
+  if (aboutMeSection.value) {
+    const rect = aboutMeSection.value.getBoundingClientRect()
+    if (rect.top < window.innerHeight * 0.8) {
+      resetAnimation()
+      // Добавляем классы анимации для всех элементов
+      if (leftContent.value) leftContent.value.classList.add('animate')
+      if (advantages.value) advantages.value.classList.add('animate')
+      if (rightContent.value) rightContent.value.classList.add('animate')
+      if (window.innerWidth <= 768) {
+        workStepRefs.value.forEach(ref => {
+          if (ref) ref.classList.add('animate')
+        })
+      }
+    }
+  }
 })
 
 onUnmounted(() => {
-  observer.disconnect()
   window.removeEventListener('scroll', handleScroll)
 })
 
@@ -339,7 +361,7 @@ p .about-me__text {
   line-height: 1.5;
 }
 
-/* Анимация для десктопа */
+
 @media (min-width: 769px) {
   .about-me__right.animate .about-me__work-step-content {
     opacity: 1;
@@ -363,7 +385,7 @@ p .about-me__text {
   }
 }
 
-/* Анимация для мобильных */
+
 @media (max-width: 768px) {
   .about-me {
     padding: 4rem 0rem;
@@ -413,8 +435,8 @@ p .about-me__text {
 
   .about-me__text {
     font-5e: 4.5rem;
-    line-he0.9ght: 1;
-    margin-bo2.5tom: 3rem;
+    line-height: 1;
+    margin-bottom: 3rem;
   }
 
   .about-me__subtext {

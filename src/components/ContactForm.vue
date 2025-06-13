@@ -6,7 +6,7 @@
       <div class="contact-form__content">
         <!-- Левая колонка с формой -->
         <div class="contact-form__form-wrapper">
-          <form class="contact-form__form" @submit.prevent="submitForm">
+          <form class="contact-form__form" @submit.prevent="handleSubmit">
             <div class="contact-form__form-group">
               <label for="name" class="contact-form__label">Ваше имя *</label>
               <input 
@@ -130,31 +130,38 @@
               </div>
             </div>
 
-            <button type="submit" class="contact-form__submit">Отправить</button>
+            <button type="submit" class="contact-form__submit" :disabled="isSubmitting">
+              {{ isSubmitting ? 'Отправка...' : 'Отправить' }}
+            </button>
+
+            <div v-if="isSuccess" class="contact-form__success">
+              Спасибо! Ваше сообщение отправлено. Мы свяжемся с вами в ближайшее время.
+            </div>
+
+            <div v-if="errorMessage" class="contact-form__error-message">
+              {{ errorMessage }}
+            </div>
           </form>
         </div>
 
-        <!-- Правая колонка с контактами -->
+        
         <div class="contact-form__info">
           <div class="contact-form__info-item">
             <h3 class="contact-form__info-title">Email</h3>
-            <a href="mailto:arhipovandq@yandex.ru" class="contact-form__info-link">arhipovandq@yandex.ru</a>
+            <a href="mailto:Land-Alina@ya.ru" class="contact-form__info-link">Land-Alina@ya.ru</a>
           </div>
 
           <div class="contact-form__info-item">
             <h3 class="contact-form__info-title">Адрес</h3>
-            <p class="contact-form__info-text">г. Москва, ул. Примерная, д. 123</p>
+            <p class="contact-form__info-text">г. Саратов, ул. имени Н.Г. Чернышевского, д. 90</p>
           </div>
 
           <div class="contact-form__info-item">
             <h3 class="contact-form__info-title">ИНН</h3>
-            <p class="contact-form__info-text">123456789012</p>
+            <p class="contact-form__info-text">632526675333</p>
           </div>
 
-          <div class="contact-form__info-item">
-            <h3 class="contact-form__info-title">ИКН</h3>
-            <p class="contact-form__info-text">987654321098</p>
-          </div>
+          
         </div>
       </div>
     </div>
@@ -163,6 +170,9 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
+import { TELEGRAM_CONFIG } from '../config/telegram'
+import { sendTelegramMessage } from '../utils/telegram'
+import { setupMobileZoomControl } from '../utils/formUtils'
 
 const contactSection = ref(null)
 const formData = ref({
@@ -180,7 +190,11 @@ const errors = ref({
   message: ''
 })
 
-// Валидация формы
+const isSubmitting = ref(false)
+const isSuccess = ref(false)
+const errorMessage = ref('')
+let cleanupZoomControl = null
+
 const validateForm = () => {
   errors.value = {
     name: '',
@@ -197,59 +211,49 @@ const validateForm = () => {
   }
 
   const phoneRegex = /^\+?[7-8]?[0-9]{10}$/
-  const fullPhone = formData.value.countryCode + formData.value.phone.replace(/\D/g, '')
-  if (!phoneRegex.test(fullPhone)) {
+  if (!phoneRegex.test(formData.value.phone.replace(/\D/g, ''))) {
     errors.value.phone = 'Введите корректный номер телефона'
     isValid = false
   }
 
-  if (formData.value.contactMethod === 'email' && !formData.value.email) {
-    errors.value.email = 'Введите email для связи'
-    isValid = false
-  } else if (formData.value.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.value.email)) {
-    errors.value.email = 'Введите корректный email'
-    isValid = false
+  if (formData.value.contactMethod === 'email') {
+    if (!formData.value.email.trim()) {
+      errors.value.email = 'Введите email для связи'
+      isValid = false
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.value.email)) {
+      errors.value.email = 'Введите корректный email'
+      isValid = false
+    }
   }
 
   return isValid
 }
 
-// Отправка формы
-const submitForm = async () => {
+const handleSubmit = async (e) => {
+  e.preventDefault()
   if (!validateForm()) return
 
+  isSubmitting.value = true
+  errorMessage.value = ''
+  isSuccess.value = false
+
   try {
-    const submitButton = document.querySelector('.contact-form__submit')
-    const originalText = submitButton.textContent
-    submitButton.textContent = 'Отправка...'
-    submitButton.disabled = true
-
-    const formSubmitData = new FormData()
-    formSubmitData.append('email', 'arhipovandq@yandex.ru')
-    formSubmitData.append('subject', 'Новая заявка с формы обратной связи')
-    
-    let message = '🔥 Новая заявка с формы обратной связи!\n\n'
-    message += '👤 Контактные данные:\n'
-    message += `Имя: ${formData.value.name}\n`
-    message += `Телефон: ${formData.value.countryCode}${formData.value.phone}\n`
-    if (formData.value.email) {
-      message += `Email: ${formData.value.email}\n`
-    }
-    message += `Способ связи: ${formData.value.contactMethod}\n`
-    message += `\n💬 Сообщение:\n${formData.value.message}`
-    
-    formSubmitData.append('message', message)
-
-    const response = await fetch('https://formsubmit.co/ajax/arhipovandq@yandex.ru', {
+    const response = await fetch('https://api.land-alina.ru/api/send-form/contact', {
       method: 'POST',
-      body: formSubmitData
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        formData: formData.value
+      })
     })
 
     if (!response.ok) {
-      throw new Error('Ошибка отправки формы')
+      const error = await response.json()
+      throw new Error(error.error || 'Ошибка при отправке формы')
     }
 
-    alert('Спасибо! Ваше сообщение отправлено. Мы свяжемся с вами в ближайшее время.')
+    isSuccess.value = true
     formData.value = {
       name: '',
       phone: '',
@@ -258,43 +262,14 @@ const submitForm = async () => {
       countryCode: '+7',
       contactMethod: 'telegram'
     }
-
-    submitButton.textContent = originalText
-    submitButton.disabled = false
   } catch (error) {
-    console.error('Ошибка при отправке:', error)
-    alert('Произошла ошибка при отправке. Пожалуйста, попробуйте позже или свяжитесь с нами другим способом.')
-    
-    const submitButton = document.querySelector('.contact-form__submit')
-    submitButton.textContent = 'Отправить'
-    submitButton.disabled = false
+    errorMessage.value = 'Произошла ошибка при отправке сообщения. Пожалуйста, попробуйте позже.'
+    console.error('Error sending message:', error)
+  } finally {
+    isSubmitting.value = false
   }
 }
 
-// Обработчик скролла для анимации исчезновения
-const handleScroll = () => {
-  if (!contactSection.value) return
-
-  const rect = contactSection.value.getBoundingClientRect()
-  const windowHeight = window.innerHeight
-
-  const fadeStart = windowHeight * 0.5
-  const fadeEnd = -windowHeight * 0.2
-
-  let progress = 0
-  if (rect.bottom < fadeStart) {
-    progress = Math.min(1, (fadeStart - rect.bottom) / (fadeStart - fadeEnd))
-  }
-
-  const scale = 1 - (progress * 0.6)
-  const translateY = progress * 50
-  const opacity = 1 - progress
-
-  contactSection.value.style.transform = `scale(${scale}) translateY(${translateY}px)`
-  contactSection.value.style.opacity = opacity
-}
-
-// Анимация появления
 onMounted(() => {
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
@@ -310,11 +285,15 @@ onMounted(() => {
     observer.observe(contactSection.value)
   }
 
-  window.addEventListener('scroll', handleScroll)
+  // Настраиваем управление масштабированием
+  cleanupZoomControl = setupMobileZoomControl()
 })
 
 onUnmounted(() => {
-  window.removeEventListener('scroll', handleScroll)
+  // Очищаем обработчики при размонтировании компонента
+  if (cleanupZoomControl) {
+    cleanupZoomControl()
+  }
 })
 </script>
 
@@ -322,9 +301,6 @@ onUnmounted(() => {
 .contact-form {
   padding: 8rem 0;
   background-color: var(--background-color);
-  transform-origin: center center;
-  will-change: transform, opacity;
-  transition: transform 0.6s ease-out, opacity 0.6s ease-out;
   opacity: 0;
   transform: translateY(50px);
   position: relative;
@@ -425,25 +401,42 @@ onUnmounted(() => {
 }
 
 .contact-form__submit {
-  padding: 2rem 4rem;
-  background-color: var(--accent-color);
-  border: none;
-  border-radius: 35px;
-  color: var(--background-color);
-  font-size: 2.8rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
   margin-top: 2rem;
   width: 100%;
-}
-
-.contact-form__submit:hover {
-  transform: translateY(-2px);
+  padding: 2rem 4rem;
+  background-color: var(--accent-color);
+  color: var(--background-color);
+  border: none;
+  border-radius: 35px;
+  font-size: 3.5rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
 }
 
 .contact-form__submit:disabled {
-  opacity: 0.5;
+  opacity: 0.7;
   cursor: not-allowed;
+}
+
+.contact-form__success {
+  margin-top: 2rem;
+  padding: 2rem;
+  background-color: rgba(217, 255, 2, 0.1);
+  border-radius: 35px;
+  color: var(--accent-color);
+  font-size: 3rem;
+  text-align: center;
+}
+
+.contact-form__error-message {
+  margin-top: 2rem;
+  padding: 2rem;
+  background-color: rgba(255, 0, 0, 0.1);
+  border-radius: 35px;
+  color: #ff0000;
+  font-size: 3rem;
+  text-align: center;
 }
 
 .contact-form__info-item {
@@ -474,9 +467,6 @@ onUnmounted(() => {
   color: var(--accent-color);
 }
 
-
-
-/* Анимация появления */
 .contact-form.animate {
   opacity: 1;
   transform: translateY(0);

@@ -3,17 +3,39 @@
     --accent-color: #D9FF02;
     --secondary-color: #B3A9A9;
     --text-color: #FFFFFF;
-    
-    /* Относительные величины для базовой ширины макета 1280px */
-    --container-padding: 3.90625vw; /* 50px / 1280px * 100 */
-    --section-top-padding: 6.25vw; /* 80px / 1280px * 100 */
+    --container-padding: 3.90625vw; 
+    --section-top-padding: 6.25vw;
+    --vh: 1vh;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    font-size: 62.5%; /* 10px */
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+    height: 100%;
 }
 
 body {
     font-family: 'Roboto', sans-serif;
     background-color: var(--background-color);
     color: var(--text-color);
+    font-size: 1.6rem; /* 16px */
     line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100%;
+}
+
+/* Разрешаем скролл только для основного контейнера */
+#app {
+    min-height: 100%;
+    position: relative;
 }
 
 .container {
@@ -29,14 +51,12 @@ body {
     position: relative;
 }
 
-/* Общие стили для заголовков */
 .title {
     font-size: 2.5rem;
     font-weight: bold;
     margin-bottom: 2rem;
 }
 
-/* Общие стили для кнопок */
 .button {
     background-color: var(--accent-color);
     color: var(--background-color);
@@ -48,4 +68,37 @@ body {
 .button:hover {
     opacity: 0.9;
     transform: translateY(-2px);
+}
+
+@media (max-width: 1920px) {
+    html {
+        font-size: 52.5%;
+    }
+}
+
+@media (max-width: 1440px) {
+    html {
+        font-size: 42.5%;
+    }
+}
+
+@media (max-width: 768px) {
+    html {
+        font-size: 32.5%;
+        
+        width: 100%;
+    }
+
+    body {
+        
+        width: 100%;
+    }
+
+    #app {
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        width: 100%;
+        min-height: 100vh;
+        min-height: -webkit-fill-available;
+    }
 } 

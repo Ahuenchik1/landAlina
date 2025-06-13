@@ -10,7 +10,6 @@
             <img :src="currentQuestion.image" :alt="currentQuestion.question" class="quiz__image">
           </div>
    
-          <!-- Правая часть с вопросом и ответами -->
           <div class="quiz__question-wrapper">
             <div class="quiz__progress">
               <div class="quiz__progress-bar" :style="{ width: `${(currentStep / questions.length) * 100}%` }"></div>
@@ -19,7 +18,6 @@
   
             <h3 class="quiz__question">{{ currentQuestion.question }}</h3>
   
-            <!-- Варианты ответов для вопросов 1-5 -->
             <div v-if="currentStep < 6" class="quiz__answers">
               <button 
                 v-for="(answer, index) in currentQuestion.answers" 
@@ -32,7 +30,6 @@
               </button>
             </div>
   
-            <!-- Форма для последнего вопроса -->
             <form v-else class="quiz__form" @submit.prevent="submitForm">
               <div class="quiz__form-group">
                 <label for="name" class="quiz__form-label">Ваше имя *</label>
@@ -163,16 +160,25 @@
                 v-if="currentStep > 1" 
                 class="quiz__btn quiz__btn--back"
                 @click="prevStep"
+                :disabled="isSubmitting"
               >
                 Назад
               </button>
               <button 
                 class="quiz__btn quiz__btn--next"
                 @click="nextStep"
-                :disabled="!canProceed"
+                :disabled="!canProceed || isSubmitting"
               >
-                {{ currentStep === questions.length ? 'Завершить' : 'Далее' }}
+                {{ isSubmitting ? 'Отправка...' : (currentStep === questions.length ? 'Отправить' : 'Далее') }}
               </button>
+            </div>
+
+            <div v-if="isSuccess" class="quiz__success">
+              Спасибо! Ваши ответы отправлены. Мы свяжемся с вами в ближайшее время.
+            </div>
+
+            <div v-if="errorMessage" class="quiz__error-message">
+              {{ errorMessage }}
             </div>
           </div>
         </div>
@@ -183,10 +189,18 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { TELEGRAM_CONFIG } from '../config/telegram'
+import { sendTelegramMessage } from '../utils/telegram'
+import { setupMobileZoomControl } from '../utils/formUtils'
 
 const quizSection = ref(null)
 const currentStep = ref(1)
 const selectedAnswer = ref('')
+const isSubmitting = ref(false)
+const errorMessage = ref('')
+const isSuccess = ref(false)
+let cleanupZoomControl = null
+
 const formData = ref({
   name: '',
   phone: '',
@@ -195,6 +209,7 @@ const formData = ref({
   countryCode: '+7',
   contactMethod: 'telegram'
 })
+
 const errors = ref({
   name: '',
   phone: '',
@@ -202,10 +217,14 @@ const errors = ref({
   message: ''
 })
 
-// Добавим массив для хранения ответов
-const answers = ref([])
+const answers = ref({
+  question1: '',
+  question2: '',
+  question3: '',
+  question4: '',
+  question5: ''
+})
 
-// Вопросы квиза
 const questions = [
   {
     question: 'Какой тип лендинга вам нужен?',
@@ -234,7 +253,6 @@ const questions = [
   }
 ]
 
-// Текущий вопрос
 const currentQuestion = computed(() => {
   if (currentStep.value === 6) {
     return {
@@ -246,7 +264,6 @@ const currentQuestion = computed(() => {
   return questions[currentStep.value - 1]
 })
 
-// Проверка возможности перехода к следующему шагу
 const canProceed = computed(() => {
   if (currentStep.value < 6) {
     return selectedAnswer.value !== ''
@@ -254,7 +271,6 @@ const canProceed = computed(() => {
   return validateForm()
 })
 
-// Валидация формы
 const validateForm = () => {
   errors.value = {
     name: '',
@@ -265,20 +281,17 @@ const validateForm = () => {
 
   let isValid = true
 
-  // Валидация имени
   if (!formData.value.name.trim()) {
     errors.value.name = 'Введите ваше имя'
     isValid = false
   }
 
-  // Валидация телефона
   const phoneRegex = /^\+?[7-8]?[0-9]{10}$/
   if (!phoneRegex.test(formData.value.phone.replace(/\D/g, ''))) {
     errors.value.phone = 'Введите корректный номер телефона'
     isValid = false
   }
 
-  // Валидация email (если выбран способ связи email)
   if (formData.value.contactMethod === 'email') {
     if (!formData.value.email.trim()) {
       errors.value.email = 'Введите email для связи'
@@ -292,63 +305,55 @@ const validateForm = () => {
   return isValid
 }
 
-// Обновим функцию выбора ответа
 const selectAnswer = (answer) => {
   selectedAnswer.value = answer
-  // Сохраняем ответ в массив
-  answers.value[currentStep.value - 1] = answer
+  answers.value[`question${currentStep.value}`] = answer
 }
 
-// Обновим функцию отправки формы
-const submitForm = async () => {
-  if (!validateForm()) return
-
-  // Формируем массив ответов
-  const formattedAnswers = questions.map((q, index) => ({
-    question: q.question,
-    answer: answers.value[index] || 'Ответ не выбран'
-  }))
+const submitQuiz = async () => {
+  isSubmitting.value = true
+  errorMessage.value = ''
+  isSuccess.value = false
 
   try {
-    // Показываем индикатор загрузки
-    const submitButton = document.querySelector('.quiz__btn--next')
-    const originalText = submitButton.textContent
-    submitButton.textContent = 'Отправка...'
-    submitButton.disabled = true
-
-    // Формируем данные для отправки
-    const formSubmitData = new FormData()
-    formSubmitData.append('email', 'arhipovandq@yandex.ru')
-    formSubmitData.append('subject', 'Новая заявка с квиза')
-    
-    // Формируем текст письма
-    let message = '🔥 Новая заявка с квиза!\n\n'
-    message += '📝 Ответы на вопросы:\n'
-    formattedAnswers.forEach((answer, index) => {
-      message += `${index + 1}. ${answer.question}\n`
-      message += `Ответ: ${answer.answer}\n\n`
-    })
-    message += '👤 Контактные данные:\n'
-    message += `Имя: ${formData.value.name}\n`
-    message += `Телефон: ${formData.value.phone}\n`
-    if (formData.value.email) {
-      message += `Email: ${formData.value.email}\n`
-    }
-    
-    formSubmitData.append('message', message)
-
-    // Отправляем данные через FormSubmit
-    const response = await fetch('https://formsubmit.co/ajax/arhipovandq@yandex.ru', {
+    const response = await fetch('https://api.land-alina.ru/api/send-form/quiz', {
       method: 'POST',
-      body: formSubmitData
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        answers: {
+          question1: answers.value.question1,
+          question2: answers.value.question2,
+          question3: answers.value.question3,
+          question4: answers.value.question4,
+          question5: answers.value.question5
+        },
+        formData: {
+          name: formData.value.name,
+          phone: formData.value.phone,
+          email: formData.value.email,
+          message: formData.value.message,
+          countryCode: formData.value.countryCode,
+          contactMethod: formData.value.contactMethod
+        }
+      })
     })
 
     if (!response.ok) {
-      throw new Error('Ошибка отправки формы')
+      const error = await response.json()
+      throw new Error(error.error || 'Ошибка при отправке формы')
     }
 
-    alert('Спасибо! Ваша заявка отправлена. Мы свяжемся с вами в ближайшее время.')
-    // Сбрасываем форму и ответы
+    isSuccess.value = true
+    // Сбрасываем все данные
+    answers.value = {
+      question1: '',
+      question2: '',
+      question3: '',
+      question4: '',
+      question5: ''
+    }
     formData.value = {
       name: '',
       phone: '',
@@ -357,61 +362,55 @@ const submitForm = async () => {
       countryCode: '+7',
       contactMethod: 'telegram'
     }
-    answers.value = []
-    // Возвращаемся к первому шагу
-    currentStep.value = 1
-    selectedAnswer.value = ''
-
-    // Возвращаем кнопку в исходное состояние
-    submitButton.textContent = originalText
-    submitButton.disabled = false
   } catch (error) {
-    console.error('Ошибка при отправке:', error)
-    alert('Произошла ошибка при отправке. Пожалуйста, попробуйте позже или свяжитесь с нами другим способом.')
-    
-    // Возвращаем кнопку в исходное состояние
-    const submitButton = document.querySelector('.quiz__btn--next')
-    submitButton.textContent = 'Завершить'
-    submitButton.disabled = false
+    errorMessage.value = 'Произошла ошибка при отправке ответов. Пожалуйста, попробуйте позже.'
+    console.error('Error sending quiz answers:', error)
+  } finally {
+    isSubmitting.value = false
   }
 }
 
-// Обновим функцию nextStep
 const nextStep = async () => {
   if (!canProceed.value) return
 
   if (currentStep.value === 6) {
-    await submitForm()
+    if (!validateForm()) return
+    await submitQuiz()
   } else {
     currentStep.value++
-    selectedAnswer.value = ''
+    selectedAnswer.value = answers.value[`question${currentStep.value}`] || ''
   }
 }
 
-// Обновим функцию prevStep
 const prevStep = () => {
   currentStep.value--
-  selectedAnswer.value = answers.value[currentStep.value - 1] || ''
+  selectedAnswer.value = answers.value[`question${currentStep.value}`] || ''
 }
 
-// Обработчик скролла для анимации исчезновения
 const handleScroll = () => {
   if (!quizSection.value) return
+
+  
+  const activeElement = document.activeElement
+  if (activeElement && (
+    activeElement.tagName === 'INPUT' ||
+    activeElement.tagName === 'TEXTAREA' ||
+    activeElement.tagName === 'SELECT'
+  )) {
+    return
+  }
 
   const rect = quizSection.value.getBoundingClientRect()
   const windowHeight = window.innerHeight
 
-  // Начало анимации исчезновения (когда нижняя граница секции достигает середины экрана)
   const fadeStart = windowHeight * 0.5
   const fadeEnd = -windowHeight * 0.2
 
-  // Вычисляем прогресс анимации на основе нижней границы
   let progress = 0
   if (rect.bottom < fadeStart) {
     progress = Math.min(1, (fadeStart - rect.bottom) / (fadeStart - fadeEnd))
   }
 
-  // Применяем трансформации
   const scale = 1 - (progress * 0.6)
   const translateY = progress * 50
   const opacity = 1 - progress
@@ -420,7 +419,6 @@ const handleScroll = () => {
   quizSection.value.style.opacity = opacity
 }
 
-// Анимация появления
 onMounted(() => {
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
@@ -436,13 +434,19 @@ onMounted(() => {
     observer.observe(quizSection.value)
   }
 
-  // Добавляем обработчик скролла
   window.addEventListener('scroll', handleScroll)
+
+  // Настраиваем управление масштабированием
+  cleanupZoomControl = setupMobileZoomControl()
 })
 
-// Очищаем обработчики при размонтировании компонента
 onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll)
+
+  // Очищаем обработчики при размонтировании компонента
+  if (cleanupZoomControl) {
+    cleanupZoomControl()
+  }
 })
 </script>
 
@@ -741,11 +745,10 @@ onUnmounted(() => {
 }
 
 .quiz__btn:disabled {
-  opacity: 0.5;
+  opacity: 0.7;
   cursor: not-allowed;
 }
 
-/* Анимация появления */
 .quiz.animate {
   opacity: 1;
   transform: translateY(0);
@@ -760,7 +763,6 @@ onUnmounted(() => {
   transform: translate(0);
 }
 
-/* Анимации для элементов внутри question-wrapper */
 .quiz__progress,
 .quiz__question,
 .quiz__answers,
@@ -796,7 +798,6 @@ onUnmounted(() => {
   transition-delay: 1.6s;
 }
 
-/* Анимация для кнопок ответов */
 .quiz__answer-btn {
   opacity: 0;
   transform: translateX(-20px);
@@ -813,7 +814,7 @@ onUnmounted(() => {
 .quiz.animate .quiz__answer-btn:nth-child(3) { transition-delay: 2.2s; }
 .quiz.animate .quiz__answer-btn:nth-child(4) { transition-delay: 2.4s; }
 
-/* Анимация для полей формы */
+
 .quiz__form-group {
   opacity: 0;
   transform: translateY(20px);
@@ -829,12 +830,32 @@ onUnmounted(() => {
 .quiz.animate .quiz__form-group:nth-child(2) { transition-delay: 2s; }
 .quiz.animate .quiz__form-group:nth-child(3) { transition-delay: 2.2s; }
 
+.quiz__success {
+  margin-top: 2rem;
+  padding: 2rem;
+  background-color: rgba(217, 255, 2, 0.1);
+  border-radius: 35px;
+  color: var(--accent-color);
+  font-size: 3rem;
+  text-align: center;
+}
+
+.quiz__error-message {
+  margin-top: 2rem;
+  padding: 2rem;
+  background-color: rgba(255, 0, 0, 0.1);
+  border-radius: 35px;
+  color: #ff0000;
+  font-size: 3rem;
+  text-align: center;
+}
+
 @media (max-width: 768px) {
   .quiz {
     padding: 4rem 0;
     margin: 0;
     width: 100%;
-    transform-origin: top center; /* Изменяем точку трансформации для мобильных */
+    transform-origin: top center; 
   }
 
   .quiz__container{

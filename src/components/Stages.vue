@@ -1,7 +1,7 @@
 <template>
   <section class="stages" id="stages" ref="stagesSection">
     <div class="container stages__container">
-      <!-- Отдельный заголовок для мобильной версии -->
+
       <h2 class="stages__title stages__title--mobile">С первых минут с головой погружаюсь в проект</h2>
       <div class="stages__content">
         <div class="stages__left">
@@ -33,7 +33,7 @@
           </button>
         </div>
       </div>
-      <!-- Отдельная кнопка для мобильной версии -->
+
       <button class="button stages__button stages__button--mobile" @click="scrollToSection('contacts')">
         <span class="stages__button-circle">
           <svg class="stages__button-arrow" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -73,17 +73,15 @@ const handleScroll = () => {
   const scrollPosition = window.scrollY
   const isMobile = window.innerWidth <= 768
 
-  // Разные точки начала анимации для десктопа и мобильной версии
   const startFadePosition = isMobile ? 3100 : 3800
   const fadeOutDistance = isMobile ? 800 : 1000
 
-  // Вычисляем opacity и transform
-  const opacity = Math.max(0, 1 - (scrollPosition - startFadePosition) / fadeOutDistance)
-  const scale = Math.max(0.8, 1 - (scrollPosition - startFadePosition) / 2000)
-  const translateY = (scrollPosition - startFadePosition) * 0.3
-
-  // Применяем трансформации только если прокрутка достигла точки начала
   if (scrollPosition > startFadePosition) {
+    const progress = Math.min(1, (scrollPosition - startFadePosition) / fadeOutDistance)
+    const opacity = 1 - progress
+    const scale = 1 - (progress * 0.2)
+    const translateY = progress * 50
+
     stages.style.opacity = opacity
     stages.style.transform = `scale(${scale}) translateY(${translateY}px)`
   } else {
@@ -91,7 +89,6 @@ const handleScroll = () => {
     stages.style.transform = 'none'
   }
 
-  // Анимация для правого блока на десктопе
   if (rightContent.value && !isMobile) {
     const rightTranslateY = Math.min(scrollPosition * 0.1, 100)
     rightContent.value.style.transform = `translateY(${rightTranslateY}px)`
@@ -101,16 +98,15 @@ const handleScroll = () => {
 onMounted(() => {
   window.addEventListener('scroll', handleScroll)
   
-  // Инициализация массива видимости элементов
+
   visibleItems.value = new Array(stages.length).fill(false)
   
-  // Создаем Intersection Observer
+ 
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
       const index = stageRefs.value.findIndex(ref => ref === entry.target)
       if (index !== -1) {
         if (entry.isIntersecting) {
-          // Добавляем небольшую задержку для каскадной анимации
           setTimeout(() => {
             visibleItems.value[index] = true
           }, index * 100)
@@ -118,16 +114,16 @@ onMounted(() => {
       }
     })
   }, {
-    threshold: 0.2, // Элемент считается видимым, когда показано 20% его высоты
-    rootMargin: '0px 0px -10% 0px' // Немного смещаем точку срабатывания вверх
+    threshold: 0.2, 
+    rootMargin: '0px 0px -10% 0px' 
   })
 
-  // Наблюдаем за каждым элементом
+
   stageRefs.value.forEach(ref => {
     if (ref) observer.observe(ref)
   })
 
-  // Очистка observer при размонтировании
+
   onUnmounted(() => {
     observer.disconnect()
     window.removeEventListener('scroll', handleScroll)
@@ -157,6 +153,7 @@ const scrollToSection = (sectionId) => {
   min-height: 100vh;
   transition: opacity 0.3s ease, transform 0.3s ease;
   will-change: transform, opacity;
+  transform-origin: center center;
 }
 
 .stages__container {
@@ -236,6 +233,9 @@ const scrollToSection = (sectionId) => {
   height: fit-content;
   display: flex;
   flex-direction: column;
+  transform-origin: center center;
+  will-change: transform;
+  transition: transform 0.3s ease;
 }
 
 .stages__title {

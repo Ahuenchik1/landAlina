@@ -37,7 +37,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 const faqSection = ref(null)
 const activeIndex = ref(null)
 
-// Данные FAQ
+
 const faqItems = [
   {
     question: '🔥 1. Что такое лендинг и для чего он нужен?',
@@ -65,12 +65,12 @@ const faqItems = [
   },
 ]
 
-// Функция для переключения ответа
+
 const toggleAnswer = (index) => {
   activeIndex.value = activeIndex.value === index ? null : index
 }
 
-// Обработчик скролла для анимации исчезновения
+
 const handleScroll = () => {
   if (!faqSection.value) return
 
@@ -93,7 +93,7 @@ const handleScroll = () => {
   faqSection.value.style.opacity = opacity
 }
 
-// Анимация появления
+
 onMounted(() => {
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
@@ -216,7 +216,7 @@ onUnmounted(() => {
   font-size: 4rem;
 }
 
-/* Анимация появления */
+
 .faq.animate {
   opacity: 1;
   transform: translateY(0);
